@@ -1,0 +1,20 @@
+{
+  "name": "po-to-sheet",
+  "version": "1.0.0",
+  "description": "po-to-sheet is a tool for convert po file to any file like csv , xlsx and more ..., the script is written using Rust , JavaScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "po files",
+    "Translations",
+    "po-to-sheet"
+  ],
+  "author": "Lors Housann(Sunny)",
+  "license": "MIT",
+  "dependencies": {
+    "po-csv": "^0.0.1"
+  }
+}
