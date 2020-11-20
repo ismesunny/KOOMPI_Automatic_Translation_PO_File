@@ -1,11 +1,25 @@
 use csv;
 use reqwest;
-use seahorse::color;
+use serde::Deserialize;
 use serde::Serialize;
-use serde_json::{self, Value};
 use std::collections::HashMap;
 use std::error::Error;
-use std::process::exit;
+
+// deserializing api response from google
+#[allow(non_snake_case)]
+#[derive(Deserialize)]
+struct Translated {
+    translatedText: String,
+}
+
+#[derive(Deserialize)]
+struct Translations {
+    translations: Vec<Translated>,
+}
+#[derive(Deserialize)]
+struct Ip {
+    data: Translations,
+}
 
 #[derive(Debug, Serialize, Clone)]
 struct Record {
@@ -32,31 +46,36 @@ struct JSONPointer {
 }
 fn build_json_pointer(s: Vec<String>) -> JSONPointer {
     JSONPointer {
+        //replace  before translate
         segments: s
             .iter()
             .map(|x| {
                 x.replace("_", "")
                     .replace(" & ", "")
-                    .replace(" &", "")
+                    // .replace(" &", "")
                     .replace("&", "")
-                    .replace("%", "xxpercentxx")
-                    //  .replace("%", "xxpercentxx")
-                    .replace("</", "xxlessbsxx")
-                    .replace("<", "xxlessxx")
-                    .replace(">", "xxgreaterxx")
+                    .replace("%", "zxpercentxz")
+                    .replace("\"", "zxdbqoutxz")
+                    .replace("</", "zxlessbsxz")
+                    .replace("<", "zxlessxz")
+                    .replace(">", "zxgreaterxz")
             })
             .collect(),
+        //replace  after translate
         segments_ac: s
             .iter()
             .map(|x| {
                 x.replace("_", "")
-                    .replace("xxpercentxx", "%")
-                    .replace("xxlessxx", "<")
-                    .replace("xxlessbsxx", "</")
-                    .replace("xxgreaterxx", ">")
+                    .replace("zxpercentxz", "%")
+                    .replace("zxlessxz", "<")
+                    .replace("zxdbqoutxz", "\"")
+                    .replace("zxlessbsxz", "</")
+                    .replace("zxgreaterxz", ">")
                     .replace("< / ", "</")
                     .replace("< ", "<")
                     .replace(" >", ">")
+                    //replace khmer word
+                    .replace("កណ្តុរ", "ម៉ៅ")
             })
             .collect(),
     }
@@ -141,6 +160,9 @@ pub fn main() {
     let mut data_msgid: Vec<String> = Vec::new();
     let mut data_msgid_p: Vec<String> = Vec::new();
 
+    let mut body = HashMap::new();
+    let client = reqwest::blocking::Client::new();
+
     let source = String::from("en"); //source language
     let target = String::from("km"); //target language
 
@@ -158,85 +180,57 @@ pub fn main() {
 
     let mut store_msg = vec![];
     let mut store_msg_p = vec![];
+    let string_null = String::from("");
 
+    let mut _count = 0;
+
+    //loop translate msgid word
     for i in data_msgid_p.iter() {
-        std::thread::sleep(std::time::Duration::from_secs(10)); //set milli second for loop translate
-
+        if i == "" {
+            println!("empty i {}", i.len());
+            store_msg_p.push(string_null.to_string());
+            println!("empty store_msg i {:?}", store_msg_p);
+            continue;
+        }
         let url = translation(i.to_string(), source.clone(), target.clone());
-        let v = reqwest::blocking::get(&url)
-            .and_then(|resp| resp.text())
-            .and_then(|body| Ok(serde_json::from_str::<Vec<Value>>(&body)))
-            .unwrap_or_else(|_| {
-                eprintln!(
-                    "{}",
-                    color::red("network error! please connect to your network...")
-                );
-                exit(1);
-            })
-            .unwrap_or_else(|_| {
-                eprintln!("{}", color::red("translation parse error..."));
-                exit(1);
-            });
-        match v.first() {
-            Some(item) => {
-                let arr = item.as_array();
-                let result = match arr {
-                    Some(values) => values
-                        .iter()
-                        .map(|s| s[0].as_str().unwrap())
-                        .collect::<Vec<&str>>()
-                        .join(" "),
-                    None => String::from(""),
-                };
-                store_msg_p.push(result);
-            }
-            None => eprintln!("{}", color::red("Error...")),
+        body.insert("source", source.clone());
+        body.insert("target", target.clone());
+        body.insert("q", i.clone());
+
+        let res: Result<Ip, reqwest::Error> =
+            client.post(&url.clone()).json(&body).send().unwrap().json();
+        match res {
+            Ok(res) => store_msg_p.push(res.data.translations[0].translatedText.to_string()),
+            Err(_) => println!("API has problem!. Please refresh your google api key."),
         }
     }
-    //loop translate msgid
+
+    //loop translate msgid word
     for j in p.segments.iter() {
-        std::thread::sleep(std::time::Duration::from_secs(10)); //set milli second for loop translate
-
         let url = translation(j.to_string(), source.clone(), target.clone());
-        let v = reqwest::blocking::get(&url)
-            .and_then(|resp| resp.text())
-            .and_then(|body| Ok(serde_json::from_str::<Vec<Value>>(&body)))
-            .unwrap_or_else(|_| {
-                eprintln!(
-                    "{}",
-                    color::red("network error! please connect to your network...")
-                );
-                exit(1);
-            })
-            .unwrap_or_else(|_| {
-                eprintln!("{}", color::red("translation parse error..."));
-                exit(1);
-            });
-        match v.first() {
-            Some(item) => {
-                let result = item
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|s| s[0].as_str().unwrap())
-                    .collect::<Vec<&str>>()
-                    .join(" ");
+        body.insert("source", source.clone());
+        body.insert("target", target.clone());
+        body.insert("q", j.clone());
 
-                store_msg.push(result);
-            }
-            None => eprintln!("{}", color::red("Error...")),
+        let res: Result<Ip, reqwest::Error> =
+            client.post(&url.clone()).json(&body).send().unwrap().json();
+        match res {
+            Ok(res) => store_msg.push(res.data.translations[0].translatedText.to_string()),
+            Err(_) => println!("API has problem!. Please refresh your google api key."),
         }
     }
     writecsv(store_msg, store_msg_p, input_csv, output_tran_csv).unwrap();
 }
 pub fn translation(v: String, source: String, target: String) -> String {
-    let base_url = "https://translate.googleapis.com/translate_a/single";
+    let api_key = String::from("GOOGLE_API_KEY");
+
+    let base_url = "https://translation.googleapis.com/language/translate/v2";
     format!(
         "{}{}{}{}{}",
         base_url,
-        "?client=gtx&ie=UTF-8&oe=UTF-8&dt=t",
-        format!("{}{}", "&sl=", source),
-        format!("{}{}", "&tl=", target),
-        format!("&q={}", v).to_string()
+        format!("?q={}", v).to_string(),
+        format!("{}{}", "&source=", source),
+        format!("{}{}", "&target=", target),
+        format!("&key={}", api_key),
     )
 }
