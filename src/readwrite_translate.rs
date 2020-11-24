@@ -4,7 +4,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::error::Error;
-
 // deserializing api response from google
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -52,17 +51,20 @@ fn build_json_pointer(s: Vec<String>) -> JSONPointer {
             .map(|x| {
                 x.replace("_", "")
                     .replace(" & ", "")
-                    .replace("><", "zxlessgreaterxz")
-                    .replace(">/<", "zxlesslinegreaterxz")
                     .replace("&", "")
-                    .replace("%", "zxpercentxz")
-                    // .replace("\"", "zxdbqoutxz")
-                    .replace("</", "zxlessbsxz")
-                    // .replace(" <", "zxlessxz")
-                    .replace(" <", ". !/zxlessspxz")
-                    .replace("<", ". !/zxlessxz")
-                    .replace("> ", "zxgreaterspxz/! ")
-                    .replace(">", "zxgreaterxz/! ")
+                    // .replace("><", "zzlessgreaterzz")
+                    // .replace(">+<", "zzpluszz")
+                    // .replace(">-<", "zzcutzz")
+                    // .replace(">/<", "zzlesslinegreaterzz")
+    
+                    .replace("%", "zzpercentzz")
+                    // .replace("\"", "zzdbqoutzz")
+                    .replace(" </", " /zzlessbsspzz")
+                    .replace("</", " /zzlessbszz")
+                    .replace(" <", " /zzlessspzz")
+                    .replace("<", " /zzlesszz")
+                    .replace("> ", "zzgreaterspzz/ ")
+                    .replace(">", "zzgreaterzz/ ")
             })
             .collect(),
         //replace  after translate
@@ -70,18 +72,26 @@ fn build_json_pointer(s: Vec<String>) -> JSONPointer {
             .iter()
             .map(|x| {
                 x.replace("_", "")
-                    .replace("zxlessgreaterxz", "><")
-                    .replace("zxlesslinegreaterxz", ">/<")
-                    .replace("zxpercentxz", "%")
-                    // .replace(" / zxlessxz", "<")
+                    // .replace("zzlessgreaterzz", "><")
+                    // .replace("zzpluszz", ">+<")
+                    // .replace("zzcutzz", ">-<")
+                    // .replace("zzlesslinegreaterzz", ">/<")
+                    .replace("zzpercentzz", "%")
+                    // .replace(" / zzlesszz", "<")
                     .replace("&quot;", "\"")
-                    .replace("zxlessbsxz", "</")
-                    .replace("។ ! / zxlessspxz", " <")
-                    .replace("។ ! / zxlessxz", "<")
-                    .replace(" ! / zxlessspxz", " <")
-                    .replace(" ! / zxlessxz", "<")
-                    .replace("zxgreaterspxz /! ", "> ")
-                    .replace("zxgreaterxz /! ", ">")
+                    .replace(" / zzlessbsspzz", " </")
+                    .replace("/ zzlessbsspzz", " </")
+                    .replace(" / zzlessbszz", "</")
+                    .replace("/ zzlessbszz", "</")
+
+                    .replace(" / zzlessspzz", " <")
+                    .replace("/ zzlessspzz", " <")
+                    .replace(" / zzlesszz", "<")
+                    .replace("/ zzlesszz", "<")
+                    .replace("zzgreaterspzz / ", "> ")
+                    .replace("zzgreaterspzz /", "> ")
+                    .replace("zzgreaterzz / ", ">")
+                    .replace("zzgreaterzz /", ">")
                     .replace("< / ", "</")
                     .replace("< ", "<")
                     .replace(" >", ">")
