@@ -1,4 +1,5 @@
 use csv;
+use htmlstream;
 use reqwest;
 use serde::Deserialize;
 use serde::Serialize;
@@ -39,64 +40,50 @@ struct RecordWrite {
     #[serde(rename = "msgstr[1]")]
     msgstr1: String,
 }
-struct JSONPointer {
-    segments: Vec<String>,
-    segments_ac: Vec<String>,
+struct Word_Replace_Before_Tran {
+    segments_before_tran: String,
 }
-fn build_json_pointer(s: Vec<String>) -> JSONPointer {
-    JSONPointer {
-        //replace  before translate
-        segments: s
+struct Word_Replace_Html {
+    segments_html: Vec<String>,
+}
+struct Word_Replace_After_Tran {
+    segments_after_tran: Vec<String>,
+}
+fn replacing_before_tran(before_tran: String) -> Word_Replace_Before_Tran {
+    Word_Replace_Before_Tran {
+        segments_before_tran: before_tran
+            .replace("_", "")
+            .replace(" & ", "")
+            .replace("&", "")
+            .replace("%", "zzpercentzz")
+            .replace(">/<", "zzlesslinegreaterzz"),
+    }
+}
+fn replacing_html(replace_html: Vec<String>) -> Word_Replace_Html {
+    Word_Replace_Html {
+        segments_html: replace_html
             .iter()
-            .map(|x| {
-                x.replace("_", "")
-                    .replace(" & ", "")
-                    .replace("&", "")
-                    // .replace("><", "zzlessgreaterzz")
-                    // .replace(">+<", "zzpluszz")
-                    // .replace(">-<", "zzcutzz")
-                    // .replace(">/<", "zzlesslinegreaterzz")
-    
-                    .replace("%", "zzpercentzz")
-                    // .replace("\"", "zzdbqoutzz")
-                    .replace(" </", " /zzlessbsspzz")
-                    .replace("</", " /zzlessbszz")
-                    .replace(" <", " /zzlessspzz")
-                    .replace("<", " /zzlesszz")
-                    .replace("> ", "zzgreaterspzz/ ")
-                    .replace(">", "zzgreaterzz/ ")
-            })
+            .map(|x| x.replace("\"", "zxdbquotxz"))
             .collect(),
-        //replace  after translate
-        segments_ac: s
+    }
+}
+fn replacing_after_tran(after_tran: Vec<String>) -> Word_Replace_After_Tran {
+    Word_Replace_After_Tran {
+        segments_after_tran: after_tran
             .iter()
             .map(|x| {
-                x.replace("_", "")
-                    // .replace("zzlessgreaterzz", "><")
-                    // .replace("zzpluszz", ">+<")
-                    // .replace("zzcutzz", ">-<")
-                    // .replace("zzlesslinegreaterzz", ">/<")
+                x.replace("> <", "><")
                     .replace("zzpercentzz", "%")
-                    // .replace(" / zzlesszz", "<")
                     .replace("&quot;", "\"")
-                    .replace(" / zzlessbsspzz", " </")
-                    .replace("/ zzlessbsspzz", " </")
-                    .replace(" / zzlessbszz", "</")
-                    .replace("/ zzlessbszz", "</")
-
-                    .replace(" / zzlessspzz", " <")
-                    .replace("/ zzlessspzz", " <")
-                    .replace(" / zzlesszz", "<")
-                    .replace("/ zzlesszz", "<")
-                    .replace("zzgreaterspzz / ", "> ")
-                    .replace("zzgreaterspzz /", "> ")
-                    .replace("zzgreaterzz / ", ">")
-                    .replace("zzgreaterzz /", ">")
-                    .replace("< / ", "</")
-                    .replace("< ", "<")
-                    .replace(" >", ">")
+                    .replace("> + <", ">+<")
+                    .replace("> - <", ">-<")
+                    .replace("> / <", ">/<")
+                    .replace("zxdbquotxz", "\"")
                     //replace khmer word
                     .replace("កណ្តុរ", "ម៉ៅ")
+                    .replace("ត្រីដូហ្វីន", "ដូហ្វីន")
+                    .replace("៧ ស", "7z")
+                    .replace("ទូក", "Ark")
             })
             .collect(),
     }
@@ -122,9 +109,9 @@ fn writecsv(
     read_tran: String,
     write_tran: String,
 ) -> Result<(), Box<dyn Error>> {
-    let p_ac = build_json_pointer(msg_str);
+    let p_ac = replacing_after_tran(msg_str);
 
-    println!("write {:?}", p_ac.segments_ac);
+    println!("write {:?}", p_ac.segments_after_tran);
     //read
     let mut rdr = csv::Reader::from_path(read_tran)?;
     let mut w_msgid = vec![];
@@ -148,7 +135,7 @@ fn writecsv(
     let mut wtr = csv::Writer::from_path(write_tran)?;
 
     for (((((((a, b), c), d), e), f), g), h) in p_ac
-        .segments_ac
+        .segments_after_tran
         .iter()
         .zip(w_msgid)
         .zip(w_msgid_plural)
@@ -180,70 +167,89 @@ pub fn main() {
 
     let mut data_msgid: Vec<String> = Vec::new();
     let mut data_msgid_p: Vec<String> = Vec::new();
-
-    let mut body = HashMap::new();
-    let client = reqwest::blocking::Client::new();
-
-    let source = String::from("en"); //source language
-    let target = String::from("km"); //target language
-
-    for j in records.iter() {
-        data_msgid.push(j.msgid.to_string());
-    }
-
-    for i in records.iter() {
-        data_msgid_p.push(i.msgid_plural.to_string());
-    }
-    println!("data before replace {:?}", data_msgid);
-    let p = build_json_pointer(data_msgid.clone());
-
-    println!("data after replace {:?}", p.segments);
-
     let mut store_msg = vec![];
     let mut store_msg_p = vec![];
     let string_null = String::from("");
 
+    for i in records.iter() {
+        data_msgid_p.push(i.msgid_plural.to_string());
+    }
+
+    for j in records.iter() {
+        data_msgid.push(j.msgid.to_string());
+    }
+    let i_afterreplace = replacing_html(data_msgid_p.clone());
+    let j_afterreplace = replacing_html(data_msgid.clone());
     let mut _count = 0;
 
     //loop translate msgid word
-    for i in data_msgid_p.iter() {
+    for i in i_afterreplace.segments_html.iter() {
         if i == "" {
             println!("empty i {}", i.len());
             store_msg_p.push(string_null.to_string());
             println!("empty store_msg i {:?}", store_msg_p);
             continue;
         }
-        let url = translation(i.to_string(), source.clone(), target.clone());
-        body.insert("source", source.clone());
-        body.insert("target", target.clone());
-        body.insert("q", i.clone());
-
-        let res: Result<Ip, reqwest::Error> =
-            client.post(&url.clone()).json(&body).send().unwrap().json();
-        match res {
-            Ok(res) => store_msg_p.push(res.data.translations[0].translatedText.to_string()),
-            Err(_) => println!("API has problem!. Please refresh your google api key."),
-        }
+        let msg_p = translate_text_html(&i);
+        store_msg_p.push(msg_p);
+        println!("{:?}", store_msg_p);
     }
-
-    //loop translate msgid word
-    for j in p.segments.iter() {
-        let url = translation(j.to_string(), source.clone(), target.clone());
-        body.insert("source", source.clone());
-        body.insert("target", target.clone());
-        body.insert("q", j.clone());
-
-        let res: Result<Ip, reqwest::Error> =
-            client.post(&url.clone()).json(&body).send().unwrap().json();
-        match res {
-            Ok(res) => store_msg.push(res.data.translations[0].translatedText.to_string()),
-            Err(_) => println!("API has problem!. Please refresh your google api key."),
-        }
+    for j in j_afterreplace.segments_html.iter() {
+        let msg_tran = translate_text_html(&j);
+        store_msg.push(msg_tran);
+        println!("{:?}", store_msg)
     }
     writecsv(store_msg, store_msg_p, input_csv, output_tran_csv).unwrap();
 }
+fn translate_text_html(s_text: &str) -> String {
+    let client = reqwest::blocking::Client::new();
+    let source = String::from("en"); //source language
+    let target = String::from("km"); //target language
+
+    let mut body = HashMap::new();
+    let mut inner_text: Vec<(usize, String)> = Vec::new();
+    let mut inner_tag: Vec<(usize, String)> = Vec::new();
+    let mut store_vec: Vec<String> = Vec::new();
+
+    for (idx, (_pos, tag)) in htmlstream::tag_iter(s_text).enumerate() {
+        if tag.html.starts_with("<") && tag.html.ends_with(">") {
+            inner_tag.push((idx, tag.html));
+            println!("inner_tag {:?}", inner_tag);
+        } else {
+            inner_text.push((idx, tag.html));
+            println!("inner_text {:?}", inner_text);
+        }
+    }
+    for (_pos, text) in inner_text {
+        println!("data before replace {:?}", text);
+        let p = replacing_before_tran(text.clone());
+        println!("data after replace {:?}", p.segments_before_tran);
+        let url = translation(
+            p.segments_before_tran.clone(),
+            source.clone(),
+            target.clone(),
+        );
+        body.insert("source", source.clone());
+        body.insert("target", target.clone());
+        body.insert("q", p.segments_before_tran.clone());
+
+        let res: Result<Ip, reqwest::Error> =
+            client.post(&url.clone()).json(&body).send().unwrap().json();
+        match res {
+            Ok(res) => store_vec.push(res.data.translations[0].translatedText.to_string()),
+            Err(_) => println!("API has problem!. Please refresh your google api key."),
+        }
+    }
+    inner_tag
+        .into_iter()
+        .for_each(|(pos, tag)| store_vec.insert(pos, tag));
+    println!("{:?}", store_vec);
+    let joined_str = store_vec.join(" ");
+    println!("{}", joined_str);
+    joined_str
+}
 pub fn translation(v: String, source: String, target: String) -> String {
-    let api_key = String::from("GOOGLE_API_KEY");
+    let api_key = String::from("GOOGLE_API_KEYS");
 
     let base_url = "https://translation.googleapis.com/language/translate/v2";
     format!(

@@ -264,6 +264,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "htmlstream"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30c80fc2df505753b4128a39e8fdbf368aecbf19865c6fc5870c8c740f42324d"
+
+[[package]]
 name = "http"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -621,6 +627,7 @@ name = "po2doc"
 version = "0.1.0"
 dependencies = [
  "csv",
+ "htmlstream",
  "reqwest",
  "seahorse",
  "serde",
