@@ -1,2 +1,2 @@
-export non translate csv file
+non translate csv file
 

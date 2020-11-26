@@ -1,1 +1,1 @@
-import none translate csv file
+translated csv file
