@@ -40,17 +40,17 @@ struct RecordWrite {
     #[serde(rename = "msgstr[1]")]
     msgstr1: String,
 }
-struct Word_Replace_Before_Tran {
+struct WordReplaceBeforeTran {
     segments_before_tran: String,
 }
-struct Word_Replace_Html {
+struct WordReplaceHtml {
     segments_html: Vec<String>,
 }
-struct Word_Replace_After_Tran {
+struct WordReplaceAfterTran {
     segments_after_tran: Vec<String>,
 }
-fn replacing_before_tran(before_tran: String) -> Word_Replace_Before_Tran {
-    Word_Replace_Before_Tran {
+fn replacing_before_tran(before_tran: String) -> WordReplaceBeforeTran {
+    WordReplaceBeforeTran {
         segments_before_tran: before_tran
             .replace("_", "")
             .replace(" & ", "")
@@ -59,16 +59,16 @@ fn replacing_before_tran(before_tran: String) -> Word_Replace_Before_Tran {
             .replace(">/<", "zzlesslinegreaterzz"),
     }
 }
-fn replacing_html(replace_html: Vec<String>) -> Word_Replace_Html {
-    Word_Replace_Html {
+fn replacing_html(replace_html: Vec<String>) -> WordReplaceHtml {
+    WordReplaceHtml {
         segments_html: replace_html
             .iter()
             .map(|x| x.replace("\"", "zxdbquotxz"))
             .collect(),
     }
 }
-fn replacing_after_tran(after_tran: Vec<String>) -> Word_Replace_After_Tran {
-    Word_Replace_After_Tran {
+fn replacing_after_tran(after_tran: Vec<String>) -> WordReplaceAfterTran {
+    WordReplaceAfterTran {
         segments_after_tran: after_tran
             .iter()
             .map(|x| {
@@ -83,7 +83,11 @@ fn replacing_after_tran(after_tran: Vec<String>) -> Word_Replace_After_Tran {
                     .replace("កណ្តុរ", "ម៉ៅ")
                     .replace("ត្រីដូហ្វីន", "ដូហ្វីន")
                     .replace("៧ ស", "7z")
-                    .replace("ទូក", "Ark")
+                    .replace("ទូក", " Ark ")
+                    .replace("បង្អួច", "ផ្ទាំងកម្មវិធី")
+                    //replace after khmer word replace khmer word
+                    .replace(">  ", ">")
+                    .replace("  <", "<")
             })
             .collect(),
     }
@@ -111,7 +115,7 @@ fn writecsv(
 ) -> Result<(), Box<dyn Error>> {
     let p_ac = replacing_after_tran(msg_str);
 
-    println!("write {:?}", p_ac.segments_after_tran);
+    println!("after replace {:?}", p_ac.segments_after_tran);
     //read
     let mut rdr = csv::Reader::from_path(read_tran)?;
     let mut w_msgid = vec![];
@@ -160,8 +164,8 @@ fn writecsv(
     Ok(())
 }
 pub fn main() {
-    let input_csv = String::from("data/export_ntran_csv/file.csv");
-    let output_tran_csv = String::from("data/import_ntran_csv/file.csv");
+    let input_csv = String::from("data/csv_cache/non_translate_csv/file.csv");
+    let output_tran_csv = String::from("data/csv_cache/translated_csv/file.csv");
 
     let records = readcsv(input_csv.clone());
 
@@ -185,19 +189,17 @@ pub fn main() {
     //loop translate msgid word
     for i in i_afterreplace.segments_html.iter() {
         if i == "" {
-            println!("empty i {}", i.len());
             store_msg_p.push(string_null.to_string());
-            println!("empty store_msg i {:?}", store_msg_p);
             continue;
         }
         let msg_p = translate_text_html(&i);
         store_msg_p.push(msg_p);
-        println!("{:?}", store_msg_p);
+        println!("msg plural word {:?}", store_msg_p);
     }
     for j in j_afterreplace.segments_html.iter() {
         let msg_tran = translate_text_html(&j);
         store_msg.push(msg_tran);
-        println!("{:?}", store_msg)
+        println!("msg word {:?}", store_msg)
     }
     writecsv(store_msg, store_msg_p, input_csv, output_tran_csv).unwrap();
 }
@@ -243,13 +245,12 @@ fn translate_text_html(s_text: &str) -> String {
     inner_tag
         .into_iter()
         .for_each(|(pos, tag)| store_vec.insert(pos, tag));
-    println!("{:?}", store_vec);
     let joined_str = store_vec.join(" ");
-    println!("{}", joined_str);
+    println!("string word has joined {}", joined_str);
     joined_str
 }
 pub fn translation(v: String, source: String, target: String) -> String {
-    let api_key = String::from("GOOGLE_API_KEYS");
+    let api_key = String::from("GOOGLE_API_KEY");
 
     let base_url = "https://translation.googleapis.com/language/translate/v2";
     format!(

@@ -19,7 +19,7 @@ pub fn read_fname(f_readname: &mut Vec<String>) {
                                                 match path.file_name() {
                                                     Some(filename) => {
                                                         println!(
-                                                            "{}",
+                                                            "file name {}",
                                                             String::from(
                                                                 filename.to_string_lossy()
                                                             )

@@ -22,7 +22,7 @@ pub fn check_dep() {
 }
 pub fn po2csv(p2c_input_po: String, p2c_output_csv: String) {
     let convert = format!("node index.js {} > {}", p2c_input_po, p2c_output_csv);
-    println!("test {}", convert);
+    println!("po2csv : {}", convert);
     //-----------------(use index.js)---------------(Folder's po)------------(where to convert into)
     Exec::shell(convert).join().unwrap();
 }
@@ -31,7 +31,7 @@ pub fn csv2po(c2p_input_po: String, c2p_output_csv: String, c2p_output_po: Strin
         "node index.js {} {} > {}",
         c2p_input_po, c2p_output_csv, c2p_output_po
     );
-    println!("test {}", convert);
+    println!("csv2po : {}", convert);
     //-----------------(use index.js)---------------(Folder's po)------------(where to convert into)
     Exec::shell(convert).join().unwrap();
 }
